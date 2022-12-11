@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -33,13 +34,19 @@ import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.MatrixUtil;
 import net.minecraft.util.math.RotationAxis;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 
 @Mixin(WorldRenderer.class)
 public class WorldRendererMixin {
+
+    @Shadow
+    @Nullable
+    private ClientWorld world;
    
     @Shadow
     @Nullable
@@ -108,16 +115,23 @@ public class WorldRendererMixin {
         return buffer.end();
     }
 
-
-    @Inject(method = "renderSky(Lnet/minecraft/client/util/math/MatrixStack;Lorg/joml/Matrix4f;FLnet/minecraft/client/render/Camera;ZLjava/lang/Runnable;)V", at = @At(value = "HEAD"))
+    @Redirect(method = "renderSky(Lnet/minecraft/client/util/math/MatrixStack;Lorg/joml/Matrix4f;FLnet/minecraft/client/render/Camera;ZLjava/lang/Runnable;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientWorld;method_23787(F)F"))
+    private float starBrightness(ClientWorld world, float tickDelta) {
+        return 0.0f;
+    }
+    @Inject(method = "renderSky(Lnet/minecraft/client/util/math/MatrixStack;Lorg/joml/Matrix4f;FLnet/minecraft/client/render/Camera;ZLjava/lang/Runnable;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientWorld;method_23787(F)F", shift = At.Shift.AFTER))
     private void renderSky(MatrixStack matrices, Matrix4f projectionMatrix, float tickDelta, Camera camera, boolean bl, Runnable runnable, CallbackInfo callback) {
-        Planetarium.LOGGER.info("WHY THE FUCK DOES THIS WORK");
-        // float brightness = 1;
-        // RenderSystem.setShaderColor(brightness, brightness, brightness, brightness);
-        // BackgroundRenderer.clearFog();
-        // this.starsBuffer.bind();
-        // this.starsBuffer.draw(matrices.peek().getPositionMatrix(), projectionMatrix, GameRenderer.getPositionProgram());
-        // VertexBuffer.unbind();
-        // runnable.run();
+
+        float brightness = this.world.method_23787(tickDelta) * 1;
+
+        RenderSystem.setShaderColor(brightness, brightness, brightness, brightness);
+        BackgroundRenderer.clearFog();
+        this.starsBuffer.bind();
+        
+        Matrix4f starMatrix = new Matrix4f(matrices.peek().getPositionMatrix()).rotate(0.785398f,1,0,0);
+        this.starsBuffer.draw(starMatrix, projectionMatrix, GameRenderer.getPositionColorProgram());
+        VertexBuffer.unbind();
+        runnable.run();
+
     }
 }

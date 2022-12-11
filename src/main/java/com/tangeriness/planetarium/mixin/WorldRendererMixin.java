@@ -6,6 +6,7 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -16,12 +17,15 @@ import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.tangeriness.planetarium.Planetarium;
+import com.tangeriness.planetarium.client.render.sky.StarrySkyRenderer;
 
+import net.fabricmc.fabric.impl.client.rendering.WorldRenderContextImpl;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.ShaderProgram;
 import net.minecraft.client.gl.VertexBuffer;
 import net.minecraft.client.render.BackgroundRenderer;
 import net.minecraft.client.render.BufferBuilder;
+import net.minecraft.client.render.BufferBuilderStorage;
 import net.minecraft.client.render.BufferRenderer;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.CameraSubmersionType;
@@ -31,6 +35,8 @@ import net.minecraft.client.render.Tessellator;
 import net.minecraft.client.render.VertexFormat;
 import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.render.WorldRenderer;
+import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.Identifier;
@@ -44,6 +50,10 @@ import net.minecraft.util.math.random.Random;
 @Mixin(WorldRenderer.class)
 public class WorldRendererMixin {
 
+    @Final
+	@Shadow
+	private MinecraftClient client;
+
     @Shadow
     @Nullable
     private ClientWorld world;
@@ -52,11 +62,19 @@ public class WorldRendererMixin {
     @Nullable
     private VertexBuffer starsBuffer;
 
+    @Unique private StarrySkyRenderer starRenderer;
+
 
     @Shadow
     private void renderEndSky(MatrixStack matrices) {}
     @Shadow
     private boolean method_43788(Camera camera) {return false;}
+
+
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void worldRenderer(MinecraftClient client, EntityRenderDispatcher entityRenderDispatcher, BlockEntityRenderDispatcher blockEntityRenderDispatcher, BufferBuilderStorage bufferBuilders, CallbackInfo callback) {
+        this.starRenderer = new StarrySkyRenderer();
+    }
     
     @Overwrite
     private void renderStars() {
@@ -122,15 +140,24 @@ public class WorldRendererMixin {
     @Inject(method = "renderSky(Lnet/minecraft/client/util/math/MatrixStack;Lorg/joml/Matrix4f;FLnet/minecraft/client/render/Camera;ZLjava/lang/Runnable;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientWorld;method_23787(F)F", shift = At.Shift.AFTER))
     private void renderSky(MatrixStack matrices, Matrix4f projectionMatrix, float tickDelta, Camera camera, boolean bl, Runnable runnable, CallbackInfo callback) {
 
-        float brightness = this.world.method_23787(tickDelta) * 1;
 
-        RenderSystem.setShaderColor(brightness, brightness, brightness, brightness);
-        BackgroundRenderer.clearFog();
-        this.starsBuffer.bind();
+
+        if (this.client.world != null) {
+			// DimensionRenderingRegistry.SkyRenderer renderer = DimensionRenderingRegistry.getSkyRenderer(world.getRegistryKey());
+
+			// if (renderer != null) {
+			// 	renderer.render(context);
+			// 	info.cancel();
+			// }
+		}
+        float brightness = this.world.method_23787(tickDelta) * 1;
+        this.starRenderer.render(matrices, projectionMatrix, tickDelta, camera, brightness);
+        // RenderSystem.setShaderColor(brightness, brightness, brightness, brightness);
+        // BackgroundRenderer.clearFog();
+        // this.starsBuffer.bind();
         
-        Matrix4f starMatrix = new Matrix4f(matrices.peek().getPositionMatrix()).rotate(0.785398f,1,0,0);
-        this.starsBuffer.draw(starMatrix, projectionMatrix, GameRenderer.getPositionColorProgram());
-        VertexBuffer.unbind();
+        // this.starsBuffer.draw(matrices.peek().getPositionMatrix(), projectionMatrix, GameRenderer.getPositionColorProgram());
+        // VertexBuffer.unbind();
         runnable.run();
 
     }

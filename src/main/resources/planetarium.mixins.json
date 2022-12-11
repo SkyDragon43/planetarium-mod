@@ -4,6 +4,7 @@
   "package": "com.tangeriness.planetarium.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "ServerWorldMixin"
   ],
   "client": [
     "ExampleMixin",

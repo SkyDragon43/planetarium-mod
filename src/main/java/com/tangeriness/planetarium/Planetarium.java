@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import net.fabricmc.api.ModInitializer;
 
+
 public class Planetarium implements ModInitializer{
     public static final String MOD_ID = "planetarium";
 
@@ -15,5 +16,4 @@ public class Planetarium implements ModInitializer{
     public void onInitialize() {
         LOGGER.info(MOD_ID + " INITEITLIZEDDSD SUCCESS!!!!!!!!!!!!!!!!!!");
     }
-    
 }

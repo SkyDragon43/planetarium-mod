@@ -20,6 +20,9 @@
   "entrypoints": {
     "main": [
       "com.tangeriness.planetarium.Planetarium"
+    ],
+    "client": [
+      "com.tangeriness.planetarium.client.PlanetariumClient"
     ]
   },
   "mixins": [

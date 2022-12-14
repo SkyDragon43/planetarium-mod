@@ -4,11 +4,17 @@
   "package": "com.tangeriness.planetarium.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
-    "ServerWorldMixin"
+    "WorldMixin",
+    "ServerWorldMixin",
+    "PlayerEntityMixin"
   ],
   "client": [
     "ExampleMixin",
-    "WorldRendererMixin"
+    "WorldRendererMixin",
+    "MouseMixin",
+    "AbstractClientPlayerEntityMixin",
+    "GameRendererMixin",
+    "ClientWorldMixin"
   ],
   "injectors": {
     "defaultRequire": 1
